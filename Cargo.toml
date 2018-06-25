@@ -1,0 +1,16 @@
+[package]
+name = "mudengine"
+version = "0.1.0"
+authors = ["mraof <mraof@mraof.com>"]
+
+[dependencies]
+close_enough = "0.2"
+ws = "0.7"
+serde = "1"
+serde_json = "1"
+serde_derive = "1"
+serdeconv = "0.3"
+slog = "2"
+sloggers = "0.2"
+specs = "0.11"
+ordermap = "0.4"

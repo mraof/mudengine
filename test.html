@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html style="background-color: #050005">
+<head>
+    <meta charset="utf-8">
+    <style>
+        h1, h2, h3, h4, h5, h6, p {
+            display: inline;
+        }
+        code {
+            color: #4c6;
+            background-color: black;
+        }
+    </style>
+</head>
+<body>
+<div style="width: 768px; height: 512px; position: relative; border-style: solid; font-family: monospace; color: #efe; background-color: #101">
+    <div id="chat" class="chat"
+         style="width: 512px; height: 512px; overflow-y: scroll; word-wrap: break-word; display: inline-block; float: left;">
+        <ul id="messages" style="list-style-type: none; padding-left: 4px;"></ul>
+    </div>
+    <div class="status" style="display: inline-block; float: left;">
+        <pre id="health"></pre>
+    </div>
+</div>
+<form id="form" style="width: 768px;">
+    <input autocomplete="off" type="text" id="msg" title="command" style="width: 600px;">
+    <input type="submit" value="Send" style="width: 145px;">
+</form>
+<script>
+    var notifyPromise = null;
+    document.addEventListener("DOMContentLoaded", function () {
+        if (!Notification) {
+            return
+        }
+
+        if (Notification.permission !== "granted") {
+            notifyPromise = Notification.requestPermission();
+        }
+    });
+    var hidden;
+    if (typeof document.hidden !== "undefined") {
+        hidden = "hidden";
+    } else if (typeof document.msHidden !== "undefined") {
+        hidden = "msHidden";
+    } else if (typeof document.webkitHidden !== "undefined") {
+        hidden = "webkitHidden";
+    }
+
+    function notify(title, message) {
+        if (Notification.permission !== "granted") {
+            notifyPromise = Notification.requestPermission();
+        } else if(document[hidden]) {
+            var notification = new Notification(title, {
+                body: message
+            });
+            notification.onclick = function () {
+                window.focus();
+            }
+        }
+    }
+    
+    function appendMessage(message) {
+        var messages = document.getElementById("messages");
+        var element = document.createElement("li");
+        element.innerHTML = message;
+        messages.appendChild(element);
+        var chat = document.getElementById("chat");
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    var socket = new WebSocket("ws://" + location.hostname + ":8000/");
+    socket.onmessage = function (event) {
+        var data = JSON.parse(event.data);
+        if ("Chat" in data) {
+            appendMessage(data.Chat[0]);
+            if(data.Chat[1] >= 2) {
+                notify("Mud chat", data.Chat[0]);
+            }
+        } else if ("Health" in data) {
+            var health = document.getElementById("health");
+            health.innerText = "Health: " + data.Health[0] + "/" + data.Health[1]
+        }
+    };
+    socket.onopen = function(event) {
+        appendMessage("Connection established")
+    };
+    socket.onclose = function(event) {
+        appendMessage("Connection lost")
+    };
+    var form = document.getElementById("form");
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var input = document.getElementById("msg");
+        appendMessage("<code>" + input.value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + "</code>");
+        socket.send(input.value);
+        input.value = "";
+    });
+</script>
+</body>
+</html>
